@@ -1,4 +1,5 @@
 import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
 import { hash } from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service';
@@ -22,8 +23,22 @@ describe('AuthService', () => {
       findUnique: jest.fn(),
       create: jest.fn(),
     },
+    refreshToken: {
+      findUnique: jest.fn(),
+      create: jest.fn().mockResolvedValue({}),
+      delete: jest.fn().mockResolvedValue({}),
+      deleteMany: jest.fn().mockResolvedValue({ count: 1 }),
+    },
+    $transaction: jest.fn().mockResolvedValue([]),
   };
-  const jwtService = { signAsync: jest.fn().mockResolvedValue('token-jwt') };
+  const jwtService = {
+    signAsync: jest.fn().mockResolvedValue('token-jwt'),
+    verifyAsync: jest.fn(),
+  };
+  const config = {
+    get: jest.fn((_chave: string, padrao: number) => padrao),
+    getOrThrow: jest.fn().mockReturnValue('refresh-secret'),
+  };
   let service: AuthService;
 
   beforeEach(async () => {
@@ -33,6 +48,7 @@ describe('AuthService', () => {
         AuthService,
         { provide: PrismaService, useValue: prisma },
         { provide: JwtService, useValue: jwtService },
+        { provide: ConfigService, useValue: config },
       ],
     }).compile();
     service = module.get(AuthService);
@@ -53,7 +69,9 @@ describe('AuthService', () => {
       where: { login: 'joao' },
     });
     expect(resultado.accessToken).toBe('token-jwt');
+    expect(resultado.refreshToken).toBe('token-jwt');
     expect(resultado.usuario).not.toHaveProperty('senha');
+    expect(prisma.refreshToken.create).toHaveBeenCalled();
   });
 
   it('rejeita credenciais inválidas', async () => {
@@ -62,5 +80,36 @@ describe('AuthService', () => {
     await expect(
       service.login({ login: 'joao', senha: 'incorreta' }),
     ).rejects.toMatchObject({ status: 401 });
+  });
+
+  it('rotaciona um refresh token válido', async () => {
+    jwtService.verifyAsync.mockResolvedValue({
+      sub: usuario.id,
+      login: usuario.login,
+      type: 'refresh',
+      jti: 'refresh-id',
+    });
+    prisma.refreshToken.findUnique.mockResolvedValue({
+      id: 1,
+      usuarioId: usuario.id,
+      expiresAt: new Date(Date.now() + 60_000),
+      usuario: {
+        id: usuario.id,
+        nome: usuario.nome,
+        login: usuario.login,
+        createdAt: usuario.createdAt,
+        updatedAt: usuario.updatedAt,
+      },
+    });
+
+    const resultado = await service.renovar({
+      refreshToken: 'token.antigo.jwt',
+    });
+
+    expect(resultado.accessToken).toBe('token-jwt');
+    expect(resultado.refreshToken).toBe('token-jwt');
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(prisma.refreshToken.delete).toHaveBeenCalled();
+    expect(prisma.refreshToken.create).toHaveBeenCalled();
   });
 });
