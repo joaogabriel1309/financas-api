@@ -20,8 +20,22 @@ model Usuario {
   createdAt     DateTime       @default(now()) @map("created_at")
   updatedAt     DateTime       @updatedAt @map("updated_at")
   refreshTokens RefreshToken[]
+  contas        Conta[]
 
   @@map("usuarios")
+}
+
+model Conta {
+  id           Int      @id @default(autoincrement())
+  nome         String
+  saldoInicial Decimal  @default(0) @map("saldo_inicial") @db.Decimal(15, 2)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  usuarioId    Int      @map("usuario_id")
+  usuario      Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId])
+  @@map("contas")
 }
 
 model RefreshToken {
