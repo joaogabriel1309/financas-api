@@ -16,5 +16,5 @@ export class CriarContaDto {
   @IsOptional()
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
-  saldoInicial?: number;
+  valor?: number;
 }

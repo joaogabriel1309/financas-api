@@ -16,7 +16,7 @@ import { CriarContaDto } from './dto/criar-conta.dto';
 
 @Controller('contas')
 export class ContasController {
-  constructor(private readonly contasService: ContasService) {}
+  constructor(private readonly contasService: ContasService) { }
 
   @Post()
   criar(
@@ -24,6 +24,15 @@ export class ContasController {
     @Body() dto: CriarContaDto,
   ) {
     return this.contasService.criar(usuario.id, dto);
+  }
+
+  @Post(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  pagar(
+    @UsuarioAtual() usuario: UsuarioAutenticado,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.contasService.pagar(usuario.id, id);
   }
 
   @Get()

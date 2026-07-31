@@ -4,14 +4,36 @@ import { CriarContaDto } from './dto/criar-conta.dto';
 
 @Injectable()
 export class ContasService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   criar(usuarioId: number, dto: CriarContaDto) {
     return this.prisma.conta.create({
       data: {
         nome: dto.nome.trim(),
-        saldoInicial: dto.saldoInicial ?? 0,
+        valor: dto.valor ?? 0,
         usuarioId,
+      },
+    });
+  }
+
+  async pagar(usuarioId: number, id: number) {
+    const conta = await this.prisma.conta.findUnique({
+      where: { id, usuarioId },
+    });
+
+    if (!conta) {
+      throw new NotFoundException('Conta não encontrada');
+    }
+
+    if (conta.pago) {
+      throw new Error('Conta já pagou');
+    }
+
+    await this.prisma.conta.update({
+      where: { id, usuarioId },
+      data: {
+        pago: true,
+        dataHoraPagamento: new Date(),
       },
     });
   }

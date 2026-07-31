@@ -4,8 +4,9 @@
 // Get a free hosted Postgres database in seconds: `npx create-db`
 
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider     = "prisma-client"
+  output       = "../generated/prisma"
+  moduleFormat = "cjs"
 }
 
 datasource db {
@@ -26,13 +27,15 @@ model Usuario {
 }
 
 model Conta {
-  id           Int      @id @default(autoincrement())
-  nome         String
-  saldoInicial Decimal  @default(0) @map("saldo_inicial") @db.Decimal(15, 2)
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
-  usuarioId    Int      @map("usuario_id")
-  usuario      Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  id                Int       @id @default(autoincrement())
+  nome              String
+  valor             Decimal   @default(0) @map("valor") @db.Decimal(15, 2)
+  pago              Boolean   @default(false) @map("pago")
+  dataHoraPagamento DateTime? @map("data_hora_pagamento")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  usuarioId         Int       @map("usuario_id")
+  usuario           Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
 
   @@index([usuarioId])
   @@map("contas")
