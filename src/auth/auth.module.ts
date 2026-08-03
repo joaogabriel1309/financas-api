@@ -14,7 +14,9 @@ import { AuthService } from './auth.service';
       useFactory: (config: ConfigService) => ({
         secret: config.getOrThrow<string>('JWT_SECRET'),
         signOptions: {
-          expiresIn: config.get<number>('JWT_EXPIRES_IN_SECONDS', 3600),
+          expiresIn: Number(
+            config.get<string>("JWT_EXPIRES_IN_SECONDS") ?? 3600,
+          ),
         },
       }),
     }),
@@ -22,4 +24,4 @@ import { AuthService } from './auth.service';
   controllers: [AuthController],
   providers: [AuthService, { provide: APP_GUARD, useClass: JwtAuthGuard }],
 })
-export class AuthModule {}
+export class AuthModule { }

@@ -19,7 +19,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly config: ConfigService,
-  ) {}
+  ) { }
 
   async registrar(dto: RegistrarDto) {
     const login = dto.login.trim().toLowerCase();
@@ -119,9 +119,8 @@ export class AuthService {
     usuario: T,
   ) {
     const payload: JwtPayload = { sub: usuario.id, login: usuario.login };
-    const refreshExpiresIn = this.config.get<number>(
-      'JWT_REFRESH_EXPIRES_IN_SECONDS',
-      604800,
+    const refreshExpiresIn = Number(
+      this.config.get<string>("JWT_REFRESH_EXPIRES_IN_SECONDS") ?? 604800,
     );
     const refreshPayload: RefreshTokenPayload = {
       ...payload,
