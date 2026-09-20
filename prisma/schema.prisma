@@ -27,7 +27,7 @@ model Usuario {
 }
 
 model Conta {
-  id                Int       @id @default(autoincrement())
+  id                String    @id @default(uuid()) @map("id")
   nome              String
   valor             Decimal   @default(0) @map("valor") @db.Decimal(15, 2)
   pago              Boolean   @default(false) @map("pago")
