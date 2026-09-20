@@ -2,7 +2,7 @@ import { PrismaPg } from "@prisma/adapter-pg"
 import { hash } from "bcryptjs"
 import { error } from "console"
 import "dotenv/config"
-import { PrismaClient } from "generated/prisma/client"
+import { PrismaClient } from "../generated/prisma/client"
 
 function obterVariavel(nome: string): string {
   const valor = process.env[nome]
