@@ -5,6 +5,7 @@ import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ContasModule } from './contas/contas.module';
+import { FormasPagamentoModule } from './formas-pagamento/formas-pagamento.module';
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { ContasModule } from './contas/contas.module';
     PrismaModule,
     AuthModule,
     ContasModule,
+    FormasPagamentoModule,
   ],
   controllers: [AppController],
   providers: [AppService],

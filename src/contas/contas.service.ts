@@ -16,7 +16,7 @@ export class ContasService {
     });
   }
 
-  async pagar(usuarioId: number, id: number) {
+  async pagar(usuarioId: number, id: string) {
     const conta = await this.prisma.conta.findUnique({
       where: { id, usuarioId },
     });
@@ -45,7 +45,7 @@ export class ContasService {
     });
   }
 
-  async excluir(usuarioId: number, id: number): Promise<void> {
+  async excluir(usuarioId: number, id: string): Promise<void> {
     const resultado = await this.prisma.conta.deleteMany({
       where: { id, usuarioId },
     });

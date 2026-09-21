@@ -14,31 +14,50 @@ datasource db {
 }
 
 model Usuario {
-  id            Int            @id @default(autoincrement())
-  nome          String
-  login         String         @unique
-  senha         String
-  createdAt     DateTime       @default(now()) @map("created_at")
-  updatedAt     DateTime       @updatedAt @map("updated_at")
-  refreshTokens RefreshToken[]
-  contas        Conta[]
+  id              Int              @id @default(autoincrement())
+  nome            String
+  login           String           @unique
+  senha           String
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+  refreshTokens   RefreshToken[]
+  contas          Conta[]
+  formasPagamento FormaPagamento[]
 
   @@map("usuarios")
 }
 
 model Conta {
-  id                Int       @id @default(autoincrement())
+  id                String          @id @default(uuid()) @map("id")
   nome              String
-  valor             Decimal   @default(0) @map("valor") @db.Decimal(15, 2)
-  pago              Boolean   @default(false) @map("pago")
-  dataHoraPagamento DateTime? @map("data_hora_pagamento")
-  createdAt         DateTime  @default(now()) @map("created_at")
-  updatedAt         DateTime  @updatedAt @map("updated_at")
-  usuarioId         Int       @map("usuario_id")
-  usuario           Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  valor             Decimal         @default(0) @map("valor") @db.Decimal(15, 2)
+  pago              Boolean         @default(false) @map("pago")
+  dataHoraPagamento DateTime?       @map("data_hora_pagamento")
+  createdAt         DateTime        @default(now()) @map("created_at")
+  updatedAt         DateTime        @updatedAt @map("updated_at")
+  usuarioId         Int             @map("usuario_id")
+  usuario           Usuario         @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  formaPagamento    FormaPagamento? @relation(fields: [formaPagamentoId], references: [id])
+  formaPagamentoId  String?
 
+  @@index([formaPagamentoId])
   @@index([usuarioId])
   @@map("contas")
+}
+
+model FormaPagamento {
+  id        String   @id @default(uuid()) @map("id")
+  nome      String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  usuarioId Int     @map("usuario_id")
+  usuario   Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  contas Conta[]
+
+  @@unique([nome, usuarioId])
+  @@map("formas_pagamento")
 }
 
 model RefreshToken {

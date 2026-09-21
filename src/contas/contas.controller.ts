@@ -9,8 +9,8 @@ import {
   ParseIntPipe,
   Post,
 } from '@nestjs/common';
-import { UsuarioAtual } from '../auth/usuario-atual.decorator';
 import type { UsuarioAutenticado } from '../auth/auth.types';
+import { UsuarioAtual } from '../auth/usuario-atual.decorator';
 import { ContasService } from './contas.service';
 import { CriarContaDto } from './dto/criar-conta.dto';
 
@@ -30,7 +30,7 @@ export class ContasController {
   @HttpCode(HttpStatus.NO_CONTENT)
   pagar(
     @UsuarioAtual() usuario: UsuarioAutenticado,
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id', ParseIntPipe) id: string,
   ) {
     return this.contasService.pagar(usuario.id, id);
   }
@@ -44,7 +44,7 @@ export class ContasController {
   @HttpCode(HttpStatus.NO_CONTENT)
   excluir(
     @UsuarioAtual() usuario: UsuarioAutenticado,
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id', ParseIntPipe) id: string,
   ) {
     return this.contasService.excluir(usuario.id, id);
   }
