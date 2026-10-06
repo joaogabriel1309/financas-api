@@ -6,7 +6,7 @@ import {
   HttpCode,
   HttpStatus,
   Param,
-  ParseIntPipe,
+  ParseUUIDPipe,
   Post,
 } from '@nestjs/common';
 import type { UsuarioAutenticado } from '../auth/auth.types';
@@ -30,7 +30,7 @@ export class ContasController {
   @HttpCode(HttpStatus.NO_CONTENT)
   pagar(
     @UsuarioAtual() usuario: UsuarioAutenticado,
-    @Param('id', ParseIntPipe) id: string,
+    @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.contasService.pagar(usuario.id, id);
   }
@@ -44,7 +44,7 @@ export class ContasController {
   @HttpCode(HttpStatus.NO_CONTENT)
   excluir(
     @UsuarioAtual() usuario: UsuarioAutenticado,
-    @Param('id', ParseIntPipe) id: string,
+    @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.contasService.excluir(usuario.id, id);
   }

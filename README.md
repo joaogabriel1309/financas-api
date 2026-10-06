@@ -27,6 +27,8 @@
 
 ## Project setup
 
+O frontend Next.js está em [`frontend`](./frontend/README.md). Para iniciá-lo, execute `npm install` e `npm run dev` nessa pasta e abra http://localhost:3001. A API continua na porta 3000.
+
 ```bash
 $ pnpm install
 ```
