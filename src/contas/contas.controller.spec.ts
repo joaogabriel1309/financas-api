@@ -15,6 +15,7 @@ describe('ContasController: IDs UUID', () => {
     listar: jest.fn().mockResolvedValue([]),
     pagar: jest.fn().mockResolvedValue(undefined),
     excluir: jest.fn().mockResolvedValue(undefined),
+    alterarValor: jest.fn().mockResolvedValue({ id: uuid, valor: '129.90' }),
     alterarFormaPagamento: jest.fn().mockResolvedValue({
       id: uuid,
       formaPagamentoId: null,
@@ -50,6 +51,49 @@ describe('ContasController: IDs UUID', () => {
   it('aceita UUID no pagamento sem converter para número', async () => {
     await request(app.getHttpServer()).post(`/contas/${uuid}`).expect(204);
     expect(service.pagar).toHaveBeenCalledWith(7, uuid, undefined);
+  });
+
+  it.each([0, 129.9, 9_999_999_999_999.99])(
+    'atualiza somente o valor com número válido: %s',
+    async (valor) => {
+      await request(app.getHttpServer())
+        .patch(`/contas/${uuid}/valor`)
+        .send({ valor })
+        .expect(200);
+      expect(service.alterarValor).toHaveBeenCalledWith(7, uuid, { valor });
+    },
+  );
+
+  it.each([
+    {},
+    { valor: null },
+    { valor: '' },
+    { valor: '129.90' },
+    { valor: '129,90' },
+    { valor: true },
+    { valor: [100] },
+    { valor: -1 },
+    { valor: 10.001 },
+    { valor: 10_000_000_000_000 },
+    { valor: 100, pago: true },
+    { valor: 100, usuarioId: 8 },
+  ])(
+    'rejeita atualização de valor inválida ou com campos extras: %j',
+    async (body) => {
+      await request(app.getHttpServer())
+        .patch(`/contas/${uuid}/valor`)
+        .send(body)
+        .expect(400);
+      expect(service.alterarValor).not.toHaveBeenCalled();
+    },
+  );
+
+  it('rejeita ID inválido na edição de valor', async () => {
+    await request(app.getHttpServer())
+      .patch('/contas/123/valor')
+      .send({ valor: 100 })
+      .expect(400);
+    expect(service.alterarValor).not.toHaveBeenCalled();
   });
 
   it('aceita UUID na exclusão', async () => {

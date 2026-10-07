@@ -353,4 +353,32 @@ describe('ContasService', () => {
       service.alterarFormaPagamento(7, 'conta-id', { formaPagamentoId: null }),
     ).rejects.toBe(erro);
   });
+
+  it('altera somente o valor da conta pertencente ao usuário', async () => {
+    const atualizado = { id: 'conta-id', valor: '129.90' };
+    prisma.conta.update.mockResolvedValueOnce(atualizado);
+    await expect(
+      service.alterarValor(7, 'conta-id', { valor: 129.9 }),
+    ).resolves.toEqual(atualizado);
+    expect(prisma.conta.update).toHaveBeenCalledWith({
+      where: { id: 'conta-id', usuarioId: 7 },
+      data: { valor: 129.9 },
+      select: { id: true, valor: true },
+    });
+  });
+
+  it('não revela nem altera valor de conta alheia ou inexistente', async () => {
+    prisma.conta.update.mockRejectedValueOnce({ code: 'P2025' });
+    await expect(
+      service.alterarValor(7, 'conta-id', { valor: 0 }),
+    ).rejects.toThrow(new NotFoundException('Conta não encontrada.'));
+  });
+
+  it('não esconde falhas inesperadas ao alterar valor', async () => {
+    const erro = new Error('Falha de conexão');
+    prisma.conta.update.mockRejectedValueOnce(erro);
+    await expect(
+      service.alterarValor(7, 'conta-id', { valor: 100 }),
+    ).rejects.toBe(erro);
+  });
 });

@@ -9,6 +9,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CriarContaDto } from './dto/criar-conta.dto';
 import { competencia, indiceMes, somarMeses } from './competencia';
 import { AlterarFormaPagamentoContaDto } from './dto/alterar-forma-pagamento-conta.dto';
+import { AlterarValorContaDto } from './dto/alterar-valor-conta.dto';
 
 const formaPagamentoSelect = { id: true, nome: true } as const;
 type ContaComPagamentos = Prisma.ContaGetPayload<{
@@ -171,6 +172,26 @@ export class ContasService {
         throw new NotFoundException(
           'Conta ou forma de pagamento não encontrada.',
         );
+      }
+      throw error;
+    }
+  }
+
+  async alterarValor(usuarioId: number, id: string, dto: AlterarValorContaDto) {
+    try {
+      return await this.prisma.conta.update({
+        where: { id, usuarioId },
+        data: { valor: dto.valor },
+        select: { id: true, valor: true },
+      });
+    } catch (error: unknown) {
+      if (
+        error &&
+        typeof error === 'object' &&
+        'code' in error &&
+        error.code === 'P2025'
+      ) {
+        throw new NotFoundException('Conta não encontrada.');
       }
       throw error;
     }

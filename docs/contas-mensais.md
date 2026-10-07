@@ -57,6 +57,19 @@ DELETE /contas/{uuid}
 
 Todas as operações continuam vinculadas ao usuário autenticado. Listar meses não cria registros; a conta contém o intervalo de competências e os pagamentos têm chave única `(contaId, mes)`.
 
+## Editar o valor de uma conta
+
+```http
+PATCH /contas/{uuid}/valor
+Content-Type: application/json
+
+{"valor":129.90}
+```
+
+O valor é obrigatório, numérico, não negativo, com até duas casas decimais e limitado a `9999999999999.99` (`Decimal(15,2)`). A resposta 200 contém somente `id` e `valor`. Dados inválidos retornam 400; contas inexistentes ou de outro usuário retornam 404.
+
+O valor pertence à definição da conta: a alteração vale para todos os meses e parcelas, inclusive meses já pagos. Não modifica o status nem a data dos pagamentos, a recorrência, a quantidade de parcelas ou a forma de pagamento. Não requer migration. No frontend, dois cliques no valor abrem a edição; Enter ou o botão salva, Esc ou Cancelar descarta o rascunho. Sair do campo não salva automaticamente.
+
 ## Atualizar o banco
 
 Faça um backup antes de aplicar migrations:

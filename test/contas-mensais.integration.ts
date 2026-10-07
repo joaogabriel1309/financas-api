@@ -213,6 +213,59 @@ async function main() {
       NotFoundException,
     );
     assert.deepEqual(await service.listar(uid + 1000, '2026-10'), []);
+    const antesDoValor = (await lista('2026-10')).find(
+      (c) => c.id === recorrente.id,
+    )!;
+    const valorAlterado = await service.alterarValor(uid, recorrente.id, {
+      valor: 149.9,
+    });
+    assert.equal(valorAlterado.id, recorrente.id);
+    assert.equal(valorAlterado.valor.toString(), '149.9');
+    assert.equal(
+      (await lista('2030-01'))
+        .find((c) => c.id === recorrente.id)!
+        .valor.toString(),
+      '149.9',
+    );
+    const depoisDoValor = (await lista('2026-10')).find(
+      (c) => c.id === recorrente.id,
+    )!;
+    assert.equal(depoisDoValor.pago, antesDoValor.pago);
+    assert.equal(
+      depoisDoValor.dataHoraPagamento?.toISOString(),
+      antesDoValor.dataHoraPagamento?.toISOString(),
+    );
+    assert.deepEqual(depoisDoValor.formaPagamento, antesDoValor.formaPagamento);
+    assert.equal(depoisDoValor.recorrencia, antesDoValor.recorrencia);
+    await assert.rejects(
+      service.alterarValor(outroUsuario.id, recorrente.id, { valor: 1 }),
+      NotFoundException,
+    );
+    await assert.rejects(
+      service.alterarValor(uid, randomUUID(), { valor: 1 }),
+      NotFoundException,
+    );
+    assert.equal(
+      (await lista('2026-10'))
+        .find((c) => c.id === recorrente.id)!
+        .valor.toString(),
+      '149.9',
+    );
+    await service.alterarValor(uid, parcelada.id, { valor: 80.55 });
+    for (const mes of ['2026-12', '2027-01', '2027-02'])
+      assert.equal(
+        (await lista(mes)).find((c) => c.id === parcelada.id)!.valor.toString(),
+        '80.55',
+      );
+    assert.equal(
+      (await lista('2027-01')).find((c) => c.id === parcelada.id)!.pago,
+      true,
+    );
+    await service.alterarValor(uid, unica.id, { valor: 0 });
+    assert.equal(
+      (await lista('2026-11')).find((c) => c.id === unica.id)!.valor.toString(),
+      '0',
+    );
     const pagamentoAntesDaTroca = (await lista('2026-10')).find(
       (c) => c.id === recorrente.id,
     )!.dataHoraPagamento;

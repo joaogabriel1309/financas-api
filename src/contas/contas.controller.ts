@@ -17,6 +17,7 @@ import { ContasService } from './contas.service';
 import { CriarContaDto } from './dto/criar-conta.dto';
 import { MesContaDto } from './dto/mes-conta.dto';
 import { AlterarFormaPagamentoContaDto } from './dto/alterar-forma-pagamento-conta.dto';
+import { AlterarValorContaDto } from './dto/alterar-valor-conta.dto';
 
 @Controller('contas')
 export class ContasController {
@@ -64,5 +65,14 @@ export class ContasController {
     @Body() dto: AlterarFormaPagamentoContaDto,
   ) {
     return this.contasService.alterarFormaPagamento(usuario.id, id, dto);
+  }
+
+  @Patch(':id/valor')
+  alterarValor(
+    @UsuarioAtual() usuario: UsuarioAutenticado,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: AlterarValorContaDto,
+  ) {
+    return this.contasService.alterarValor(usuario.id, id, dto);
   }
 }
