@@ -60,6 +60,7 @@ export class ContasService {
       const conta = await this.prisma.conta.create({
         data: {
           nome: dto.nome.trim(),
+          icone: dto.icone ?? 'wallet',
           valor: dto.valor ?? 0,
           recorrencia,
           parcela,

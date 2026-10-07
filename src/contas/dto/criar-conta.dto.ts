@@ -1,5 +1,6 @@
 import {
   IsBoolean,
+  IsIn,
   IsInt,
   IsNotEmpty,
   IsNumber,
@@ -12,12 +13,17 @@ import {
   Matches,
 } from 'class-validator';
 import { MES_REGEX } from '../competencia';
+import { ICONES_CONTA, type IconeConta } from '../icones-conta';
 
 export class CriarContaDto {
   @IsString()
   @IsNotEmpty()
   @Length(2, 100)
   nome!: string;
+
+  @IsOptional()
+  @IsIn(ICONES_CONTA, { message: 'Selecione um ícone válido para a conta.' })
+  icone?: IconeConta;
 
   @IsOptional()
   @IsNumber({ maxDecimalPlaces: 2 })

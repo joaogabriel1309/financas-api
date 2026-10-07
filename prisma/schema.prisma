@@ -30,6 +30,7 @@ model Usuario {
 model Conta {
   id                String          @id @default(uuid()) @map("id")
   nome              String
+  icone             String          @default("wallet") @db.VarChar(24)
   valor             Decimal         @default(0) @map("valor") @db.Decimal(15, 2)
   pago              Boolean         @default(false) @map("pago")
   recorrencia       Boolean         @default(false) @map("recorrencia")

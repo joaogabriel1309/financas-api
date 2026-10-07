@@ -72,6 +72,8 @@ O valor pertence à definição da conta: a alteração vale para todos os meses
 
 ## Atualizar o banco
 
+O cadastro aceita o campo opcional `icone`, salvo na definição da conta e retornado na listagem de todos os meses e parcelas. Valores permitidos: `wallet`, `home`, `car`, `motorcycle` (moto), `fuel` (gasolina), `loan` (empréstimo), `health-plan` (plano de saúde), `cart`, `heart`, `book`, `wifi`, `bolt`, `coffee`, `phone`, `card` e `receipt`. Quando omitido, usa `wallet`. A migration `20261007190000_add_icone_conta` mantém esse padrão para as contas existentes, sem alterar seus pagamentos. Adicionar essas opções não exige outra migration.
+
 Faça um backup antes de aplicar migrations:
 
 ```powershell
