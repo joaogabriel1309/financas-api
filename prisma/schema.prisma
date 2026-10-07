@@ -33,6 +33,7 @@ model Conta {
   valor             Decimal         @default(0) @map("valor") @db.Decimal(15, 2)
   pago              Boolean         @default(false) @map("pago")
   recorrencia       Boolean         @default(false) @map("recorrencia")
+  parcela           Int             @default(1) @map("parcela")
   dataHoraPagamento DateTime?       @map("data_hora_pagamento")
   createdAt         DateTime        @default(now()) @map("created_at")
   updatedAt         DateTime        @updatedAt @map("updated_at")

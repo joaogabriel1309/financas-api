@@ -4,7 +4,7 @@ import { CriarContaDto } from './dto/criar-conta.dto';
 
 @Injectable()
 export class ContasService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   criar(usuarioId: number, dto: CriarContaDto) {
     return this.prisma.conta.create({
@@ -12,6 +12,7 @@ export class ContasService {
         nome: dto.nome.trim(),
         valor: dto.valor ?? 0,
         recorrencia: dto.recorrencia ?? false,
+        parcela: dto.parcela ?? 1,
         usuarioId,
       },
     });

@@ -12,7 +12,7 @@ export class CriarContaDto {
   @IsString()
   @IsNotEmpty()
   @Length(2, 100)
-  nome: string;
+  nome!: string;
 
   @IsOptional()
   @IsNumber({ maxDecimalPlaces: 2 })
@@ -22,4 +22,9 @@ export class CriarContaDto {
   @IsOptional()
   @IsBoolean()
   recorrencia?: boolean;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  parcela?: number;
 }
