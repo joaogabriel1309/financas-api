@@ -8,15 +8,17 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
+  Query,
 } from '@nestjs/common';
 import type { UsuarioAutenticado } from '../auth/auth.types';
 import { UsuarioAtual } from '../auth/usuario-atual.decorator';
 import { ContasService } from './contas.service';
 import { CriarContaDto } from './dto/criar-conta.dto';
+import { MesContaDto } from './dto/mes-conta.dto';
 
 @Controller('contas')
 export class ContasController {
-  constructor(private readonly contasService: ContasService) { }
+  constructor(private readonly contasService: ContasService) {}
 
   @Post()
   criar(
@@ -31,13 +33,17 @@ export class ContasController {
   pagar(
     @UsuarioAtual() usuario: UsuarioAutenticado,
     @Param('id', ParseUUIDPipe) id: string,
+    @Query() filtro: MesContaDto,
   ) {
-    return this.contasService.pagar(usuario.id, id);
+    return this.contasService.pagar(usuario.id, id, filtro.mes);
   }
 
   @Get()
-  listar(@UsuarioAtual() usuario: UsuarioAutenticado) {
-    return this.contasService.listar(usuario.id);
+  listar(
+    @UsuarioAtual() usuario: UsuarioAutenticado,
+    @Query() filtro: MesContaDto,
+  ) {
+    return this.contasService.listar(usuario.id, filtro.mes);
   }
 
   @Delete(':id')

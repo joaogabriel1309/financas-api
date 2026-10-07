@@ -27,7 +27,9 @@
 
 ## Project setup
 
-O frontend Next.js está em [`frontend`](./frontend/README.md). Para iniciá-lo, execute `npm install` e `npm run dev` nessa pasta e abra http://localhost:3001. A API continua na porta 3000.
+O frontend Next.js está no projeto separado [`financas-web`](../financas-web/README.md). Para iniciá-lo, execute `pnpm install` e `pnpm dev` nessa pasta e abra http://localhost:3001. A API continua na porta 3000.
+
+As regras, endpoints e migrations de contas por mês, recorrência e parcelas estão em [Contas mensais](./docs/contas-mensais.md).
 
 ```bash
 $ pnpm install

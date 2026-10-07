@@ -34,6 +34,8 @@ model Conta {
   pago              Boolean         @default(false) @map("pago")
   recorrencia       Boolean         @default(false) @map("recorrencia")
   parcela           Int             @default(1) @map("parcela")
+  mesReferencia     String          @map("mes_referencia") @db.VarChar(7)
+  mesFim            String?         @map("mes_fim") @db.VarChar(7)
   dataHoraPagamento DateTime?       @map("data_hora_pagamento")
   createdAt         DateTime        @default(now()) @map("created_at")
   updatedAt         DateTime        @updatedAt @map("updated_at")
@@ -41,10 +43,22 @@ model Conta {
   usuario           Usuario         @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   formaPagamento    FormaPagamento? @relation(fields: [formaPagamentoId], references: [id])
   formaPagamentoId  String?
+  pagamentos        ContaPagamento[]
 
   @@index([formaPagamentoId])
   @@index([usuarioId])
+  @@index([usuarioId, mesReferencia, mesFim])
   @@map("contas")
+}
+
+model ContaPagamento {
+  contaId           String   @map("conta_id")
+  mes               String   @db.VarChar(7)
+  dataHoraPagamento DateTime @default(now()) @map("data_hora_pagamento")
+  conta             Conta    @relation(fields: [contaId], references: [id], onDelete: Cascade)
+
+  @@id([contaId, mes])
+  @@map("conta_pagamentos")
 }
 
 model FormaPagamento {
