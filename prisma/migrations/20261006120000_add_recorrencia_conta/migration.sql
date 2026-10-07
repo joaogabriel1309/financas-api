@@ -1,0 +1,1 @@
+ALTER TABLE "contas" ADD COLUMN "recorrencia" BOOLEAN NOT NULL DEFAULT false;

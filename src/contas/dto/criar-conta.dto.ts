@@ -1,4 +1,5 @@
 import {
+  IsBoolean,
   IsNotEmpty,
   IsNumber,
   IsOptional,
@@ -17,4 +18,8 @@ export class CriarContaDto {
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
   valor?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  recorrencia?: boolean;
 }

@@ -28,10 +28,24 @@ describe('ContasService', () => {
   it('cria uma conta vinculada ao usuário', async () => {
     prisma.conta.create.mockResolvedValue({ id: 1 });
 
-    await service.criar(7, { nome: ' Conta principal ', saldoInicial: 100 });
+    await service.criar(7, { nome: ' Conta principal ', valor: 100 });
 
     expect(prisma.conta.create).toHaveBeenCalledWith({
-      data: { nome: 'Conta principal', saldoInicial: 100, usuarioId: 7 },
+      data: {
+        nome: 'Conta principal',
+        valor: 100,
+        recorrencia: false,
+        usuarioId: 7,
+      },
+    });
+  });
+
+  it('salva a recorrência quando marcada sem criar outras contas', async () => {
+    await service.criar(7, { nome: 'Internet', valor: 100, recorrencia: true });
+
+    expect(prisma.conta.create).toHaveBeenCalledTimes(1);
+    expect(prisma.conta.create).toHaveBeenCalledWith({
+      data: { nome: 'Internet', valor: 100, recorrencia: true, usuarioId: 7 },
     });
   });
 
@@ -49,16 +63,16 @@ describe('ContasService', () => {
   it('exclui apenas uma conta pertencente ao usuário', async () => {
     prisma.conta.deleteMany.mockResolvedValue({ count: 1 });
 
-    await expect(service.excluir(7, 2)).resolves.toBeUndefined();
+    await expect(service.excluir(7, 'conta-id')).resolves.toBeUndefined();
     expect(prisma.conta.deleteMany).toHaveBeenCalledWith({
-      where: { id: 2, usuarioId: 7 },
+      where: { id: 'conta-id', usuarioId: 7 },
     });
   });
 
   it('retorna 404 ao excluir conta inexistente ou de outro usuário', async () => {
     prisma.conta.deleteMany.mockResolvedValue({ count: 0 });
 
-    await expect(service.excluir(7, 2)).rejects.toBeInstanceOf(
+    await expect(service.excluir(7, 'conta-id')).rejects.toBeInstanceOf(
       NotFoundException,
     );
   });
