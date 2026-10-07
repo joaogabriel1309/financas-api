@@ -15,6 +15,11 @@ describe('ContasController: IDs UUID', () => {
     listar: jest.fn().mockResolvedValue([]),
     pagar: jest.fn().mockResolvedValue(undefined),
     excluir: jest.fn().mockResolvedValue(undefined),
+    alterarFormaPagamento: jest.fn().mockResolvedValue({
+      id: uuid,
+      formaPagamentoId: null,
+      formaPagamento: null,
+    }),
   };
 
   beforeAll(async () => {
@@ -96,5 +101,79 @@ describe('ContasController: IDs UUID', () => {
     await request(app.getHttpServer()).delete('/contas/invalido').expect(400);
     expect(service.pagar).not.toHaveBeenCalled();
     expect(service.excluir).not.toHaveBeenCalled();
+  });
+
+  it('aceita forma de pagamento com UUID e encaminha ao serviço', async () => {
+    await request(app.getHttpServer())
+      .post('/contas')
+      .send({ nome: 'Internet', formaPagamentoId: uuid })
+      .expect(201);
+    expect(service.criar).toHaveBeenCalledWith(7, {
+      nome: 'Internet',
+      formaPagamentoId: uuid,
+    });
+  });
+
+  it.each(['', 'invalido', 123, true, [uuid]])(
+    'rejeita formaPagamentoId inválido: %j',
+    async (formaPagamentoId) => {
+      await request(app.getHttpServer())
+        .post('/contas')
+        .send({ nome: 'Internet', formaPagamentoId })
+        .expect(400);
+      expect(service.criar).not.toHaveBeenCalled();
+    },
+  );
+
+  it('aceita forma de pagamento não informada explicitamente', async () => {
+    await request(app.getHttpServer())
+      .post('/contas')
+      .send({ nome: 'Internet', formaPagamentoId: null })
+      .expect(201);
+    expect(service.criar).toHaveBeenCalledWith(7, {
+      nome: 'Internet',
+      formaPagamentoId: null,
+    });
+  });
+
+  it.each([uuid, null])(
+    'atualiza o vínculo por UUID ou remove com null: %j',
+    async (formaPagamentoId) => {
+      await request(app.getHttpServer())
+        .patch(`/contas/${uuid}`)
+        .send({ formaPagamentoId })
+        .expect(200);
+      expect(service.alterarFormaPagamento).toHaveBeenCalledWith(7, uuid, {
+        formaPagamentoId,
+      });
+    },
+  );
+
+  it.each([
+    {},
+    { formaPagamentoId: '' },
+    { formaPagamentoId: 'invalido' },
+    { formaPagamentoId: 123 },
+    { formaPagamentoId: true },
+    { formaPagamentoId: [uuid] },
+    { formaPagamentoId: null, pago: true },
+    { formaPagamentoId: null, usuarioId: 8 },
+  ])(
+    'rejeita atualização sem vínculo explícito, inválida ou com outros campos: %j',
+    async (body) => {
+      await request(app.getHttpServer())
+        .patch(`/contas/${uuid}`)
+        .send(body)
+        .expect(400);
+      expect(service.alterarFormaPagamento).not.toHaveBeenCalled();
+    },
+  );
+
+  it('rejeita ID inválido ao atualizar forma da conta', async () => {
+    await request(app.getHttpServer())
+      .patch('/contas/123')
+      .send({ formaPagamentoId: null })
+      .expect(400);
+    expect(service.alterarFormaPagamento).not.toHaveBeenCalled();
   });
 });

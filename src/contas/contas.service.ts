@@ -4,16 +4,19 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import type {
-  Conta,
-  ContaPagamento,
-  Prisma,
-} from '../../generated/prisma/client';
+import type { Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CriarContaDto } from './dto/criar-conta.dto';
 import { competencia, indiceMes, somarMeses } from './competencia';
+import { AlterarFormaPagamentoContaDto } from './dto/alterar-forma-pagamento-conta.dto';
 
-type ContaComPagamentos = Conta & { pagamentos: ContaPagamento[] };
+const formaPagamentoSelect = { id: true, nome: true } as const;
+type ContaComPagamentos = Prisma.ContaGetPayload<{
+  include: {
+    pagamentos: true;
+    formaPagamento: { select: typeof formaPagamentoSelect };
+  };
+}>;
 
 function filtroMensal(usuarioId: number, mes: string): Prisma.ContaWhereInput {
   return {
@@ -52,19 +55,43 @@ export class ContasService {
         'Escolha recorrência ou parcelamento, não os dois.',
       );
     }
-    const conta = await this.prisma.conta.create({
-      data: {
-        nome: dto.nome.trim(),
-        valor: dto.valor ?? 0,
-        recorrencia,
-        parcela,
-        mesReferencia: mes,
-        mesFim: recorrencia ? null : somarMeses(mes, parcela - 1),
-        usuarioId,
-      },
-      include: { pagamentos: true },
-    });
-    return apresentar(conta, mes);
+    try {
+      const conta = await this.prisma.conta.create({
+        data: {
+          nome: dto.nome.trim(),
+          valor: dto.valor ?? 0,
+          recorrencia,
+          parcela,
+          mesReferencia: mes,
+          mesFim: recorrencia ? null : somarMeses(mes, parcela - 1),
+          usuario: { connect: { id: usuarioId } },
+          // O dono da forma é validado na mesma escrita que cria a conta.
+          ...(dto.formaPagamentoId
+            ? {
+                formaPagamento: {
+                  connect: { id: dto.formaPagamentoId, usuarioId },
+                },
+              }
+            : {}),
+        },
+        include: {
+          pagamentos: true,
+          formaPagamento: { select: formaPagamentoSelect },
+        },
+      });
+      return apresentar(conta, mes);
+    } catch (error: unknown) {
+      if (
+        dto.formaPagamentoId &&
+        error &&
+        typeof error === 'object' &&
+        'code' in error &&
+        error.code === 'P2025'
+      ) {
+        throw new NotFoundException('Forma de pagamento não encontrada.');
+      }
+      throw error;
+    }
   }
 
   async pagar(
@@ -95,7 +122,10 @@ export class ContasService {
     const mes = competencia(referencia);
     const contas = await this.prisma.conta.findMany({
       where: filtroMensal(usuarioId, mes),
-      include: { pagamentos: { where: { mes } } },
+      include: {
+        pagamentos: { where: { mes } },
+        formaPagamento: { select: formaPagamentoSelect },
+      },
       orderBy: { createdAt: 'desc' },
     });
     return contas.map((conta) => apresentar(conta, mes));
@@ -108,6 +138,41 @@ export class ContasService {
 
     if (resultado.count === 0) {
       throw new NotFoundException('Conta não encontrada');
+    }
+  }
+
+  async alterarFormaPagamento(
+    usuarioId: number,
+    id: string,
+    dto: AlterarFormaPagamentoContaDto,
+  ) {
+    try {
+      return await this.prisma.conta.update({
+        where: { id, usuarioId },
+        data: {
+          formaPagamento:
+            dto.formaPagamentoId === null
+              ? { disconnect: true }
+              : { connect: { id: dto.formaPagamentoId, usuarioId } },
+        },
+        select: {
+          id: true,
+          formaPagamentoId: true,
+          formaPagamento: { select: formaPagamentoSelect },
+        },
+      });
+    } catch (error: unknown) {
+      if (
+        error &&
+        typeof error === 'object' &&
+        'code' in error &&
+        error.code === 'P2025'
+      ) {
+        throw new NotFoundException(
+          'Conta ou forma de pagamento não encontrada.',
+        );
+      }
+      throw error;
     }
   }
 }

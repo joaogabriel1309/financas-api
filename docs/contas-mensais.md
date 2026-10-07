@@ -21,6 +21,35 @@ Content-Type: application/json
 
 Esta conta aparece em dezembro, janeiro e fevereiro. A resposta mensal inclui `mes`, `mesReferencia`, `mesFim`, `parcela`, `parcelaAtual`, `recorrencia`, `pago` e `dataHoraPagamento`.
 
+### Forma de pagamento
+
+O cadastro aceita `formaPagamentoId` opcional (UUID de uma forma cadastrada pelo usuário autenticado). Omitir o campo ou enviar `null` cria uma conta sem vínculo.
+
+```json
+{
+  "nome": "Internet",
+  "valor": 100,
+  "mes": "2026-10",
+  "recorrencia": true,
+  "formaPagamentoId": "84933758-d41a-45cf-9116-62c2b7ccfb43"
+}
+```
+
+A criação e a listagem retornam `formaPagamentoId` e `formaPagamento: { "id": "...", "nome": "Pix" }`, ou ambos `null` quando não houver vínculo. A mesma forma vale para todos os meses e parcelas. UUID inválido retorna 400; forma inexistente ou de outro usuário retorna 404 e não cria a conta. A validação de propriedade e o vínculo são feitos em uma única escrita aninhada.
+
+Renomear a forma altera o nome exibido nas próximas consultas. Excluí-la mantém as contas e seus pagamentos, deixando o vínculo `null`, conforme a relação `ON DELETE SET NULL` já existente. Não é necessária uma nova migration para este vínculo.
+
+Para trocar a forma de uma conta existente (incluindo contas já pagas):
+
+```http
+PATCH /contas/{uuid}
+Content-Type: application/json
+
+{"formaPagamentoId":"84933758-d41a-45cf-9116-62c2b7ccfb43"}
+```
+
+Enviar `{"formaPagamentoId":null}` remove o vínculo. O campo é obrigatório neste endpoint; omiti-lo ou enviar UUID inválido retorna 400. A resposta 200 contém somente `id`, `formaPagamentoId` e `formaPagamento`. Não é necessário informar `mes`: o vínculo pertence à definição da conta e muda em todos os meses/parcelas, sem alterar valores, status ou datas dos pagamentos. Contas e formas de outro usuário ou inexistentes retornam 404 sem modificar o vínculo anterior.
+
 ```http
 POST /contas/{uuid}?mes=2027-01
 DELETE /contas/{uuid}

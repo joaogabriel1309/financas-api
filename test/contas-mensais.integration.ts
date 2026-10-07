@@ -54,10 +54,28 @@ async function main() {
     await prisma.onModuleInit();
     const service = new ContasService(prisma);
     const uid = usuario.id;
+    const forma = await prisma.formaPagamento.create({
+      data: { nome: 'Pix', usuarioId: uid },
+    });
+    const outroUsuario = await prisma.usuario.create({
+      data: {
+        nome: 'Outro usuário',
+        login: 'outro-usuario',
+        senha: 'nao-utilizada',
+      },
+    });
+    const formaAlheia = await prisma.formaPagamento.create({
+      data: { nome: 'Cartão', usuarioId: outroUsuario.id },
+    });
+    const outraForma = await prisma.formaPagamento.create({
+      data: { nome: 'Cartão pessoal', usuarioId: uid },
+    });
     const outubro = await service.listar(uid, '2026-10');
     assert.equal(outubro.length, 1);
     assert.equal(outubro[0].id, legadoId);
     assert.equal(outubro[0].pago, true);
+    assert.equal(outubro[0].formaPagamentoId, null);
+    assert.equal(outubro[0].formaPagamento, null);
     assert.equal(
       outubro[0].dataHoraPagamento?.toISOString(),
       '2026-11-02T12:00:00.000Z',
@@ -70,22 +88,46 @@ async function main() {
       valor: 99.9,
       recorrencia: true,
       mes: '2026-10',
+      formaPagamentoId: forma.id,
     });
     const unica = await service.criar(uid, {
       nome: 'Manutenção',
       valor: 50,
       mes: '2026-11',
+      formaPagamentoId: null,
     });
     const parcelada = await service.criar(uid, {
       nome: 'Compra',
       valor: 75.5,
       parcela: 3,
       mes: '2026-12',
+      formaPagamentoId: forma.id,
     });
+    assert.deepEqual(recorrente.formaPagamento, { id: forma.id, nome: 'Pix' });
+    assert.equal(recorrente.formaPagamentoId, forma.id);
+    assert.equal(unica.formaPagamento, null);
+    assert.equal(unica.formaPagamentoId, null);
+    const quantidadeAntes = await prisma.conta.count();
+    for (const formaPagamentoId of [formaAlheia.id, randomUUID()]) {
+      await assert.rejects(
+        service.criar(uid, { nome: 'Vínculo inválido', formaPagamentoId }),
+        NotFoundException,
+      );
+    }
+    assert.equal(
+      await prisma.conta.count(),
+      quantidadeAntes,
+      'Vínculo inválido não cria conta',
+    );
     const lista = (mes: string) => service.listar(uid, mes);
     assert.equal(
       (await lista('2030-01')).some((c) => c.id === recorrente.id),
       true,
+    );
+    assert.deepEqual(
+      (await lista('2030-01')).find((c) => c.id === recorrente.id)!
+        .formaPagamento,
+      { id: forma.id, nome: 'Pix' },
     );
     assert.equal(
       (await lista('2026-10')).some((c) => c.id === unica.id),
@@ -107,6 +149,7 @@ async function main() {
       const conta = (await lista(mes)).find((c) => c.id === parcelada.id)!;
       assert.equal(conta.parcelaAtual, numero);
       assert.equal(conta.valor.toString(), '75.5');
+      assert.deepEqual(conta.formaPagamento, { id: forma.id, nome: 'Pix' });
     }
     assert.equal(
       (await lista('2026-11')).some((c) => c.id === parcelada.id),
@@ -170,6 +213,85 @@ async function main() {
       NotFoundException,
     );
     assert.deepEqual(await service.listar(uid + 1000, '2026-10'), []);
+    const pagamentoAntesDaTroca = (await lista('2026-10')).find(
+      (c) => c.id === recorrente.id,
+    )!.dataHoraPagamento;
+    const vinculoAlterado = await service.alterarFormaPagamento(
+      uid,
+      recorrente.id,
+      { formaPagamentoId: outraForma.id },
+    );
+    assert.deepEqual(vinculoAlterado, {
+      id: recorrente.id,
+      formaPagamentoId: outraForma.id,
+      formaPagamento: { id: outraForma.id, nome: outraForma.nome },
+    });
+    assert.equal(
+      (await lista('2030-01')).find((c) => c.id === recorrente.id)!
+        .formaPagamentoId,
+      outraForma.id,
+    );
+    assert.equal(
+      (await lista('2026-10'))
+        .find((c) => c.id === recorrente.id)!
+        .dataHoraPagamento?.toISOString(),
+      pagamentoAntesDaTroca?.toISOString(),
+    );
+    assert.equal(
+      (await lista('2027-01')).find((c) => c.id === parcelada.id)!
+        .formaPagamentoId,
+      forma.id,
+    );
+    for (const formaPagamentoId of [formaAlheia.id, randomUUID()]) {
+      await assert.rejects(
+        service.alterarFormaPagamento(uid, recorrente.id, { formaPagamentoId }),
+        NotFoundException,
+      );
+      assert.equal(
+        (await lista('2026-10')).find((c) => c.id === recorrente.id)!
+          .formaPagamentoId,
+        outraForma.id,
+      );
+    }
+    for (const formaPagamentoId of [forma.id, null]) {
+      await assert.rejects(
+        service.alterarFormaPagamento(outroUsuario.id, recorrente.id, {
+          formaPagamentoId,
+        }),
+        NotFoundException,
+      );
+    }
+    await assert.rejects(
+      service.alterarFormaPagamento(uid, randomUUID(), {
+        formaPagamentoId: forma.id,
+      }),
+      NotFoundException,
+    );
+    const vinculoRemovido = await service.alterarFormaPagamento(
+      uid,
+      recorrente.id,
+      { formaPagamentoId: null },
+    );
+    assert.deepEqual(vinculoRemovido, {
+      id: recorrente.id,
+      formaPagamentoId: null,
+      formaPagamento: null,
+    });
+    assert.equal(
+      (await lista('2026-10')).find((c) => c.id === recorrente.id)!.pago,
+      true,
+    );
+    assert.equal(
+      (await lista('2030-01')).find((c) => c.id === recorrente.id)!
+        .formaPagamento,
+      null,
+    );
+    await service.alterarFormaPagamento(uid, recorrente.id, {
+      formaPagamentoId: null,
+    });
+    await service.alterarFormaPagamento(uid, recorrente.id, {
+      formaPagamentoId: forma.id,
+    });
     await assert.rejects(
       service.pagar(uid + 1000, recorrente.id, '2026-10'),
       NotFoundException,
@@ -178,13 +300,35 @@ async function main() {
       service.excluir(uid + 1000, recorrente.id),
       NotFoundException,
     );
+    await prisma.formaPagamento.update({
+      where: { id: forma.id },
+      data: { nome: 'Pix pessoal' },
+    });
+    assert.deepEqual(
+      (await lista('2026-10')).find((c) => c.id === recorrente.id)!
+        .formaPagamento,
+      { id: forma.id, nome: 'Pix pessoal' },
+    );
+    const contasAntesDeExcluirForma = await prisma.conta.count();
+    await prisma.formaPagamento.delete({ where: { id: forma.id } });
+    assert.equal(await prisma.conta.count(), contasAntesDeExcluirForma);
+    const semForma = (await lista('2026-10')).find(
+      (c) => c.id === recorrente.id,
+    )!;
+    assert.equal(semForma.formaPagamentoId, null);
+    assert.equal(semForma.formaPagamento, null);
+    assert.equal(
+      semForma.pago,
+      true,
+      'Excluir forma mantém o pagamento da conta',
+    );
     await service.excluir(uid, recorrente.id);
     assert.equal(
       await prisma.contaPagamento.count({ where: { contaId: recorrente.id } }),
       0,
     );
     console.log(
-      'OK: migração legada, mês único, recorrência, parcelas, pagamentos concorrentes e isolamento de usuário.',
+      'OK: migração legada, meses, pagamentos concorrentes, troca e remoção de forma, isolamento e exclusão sem perda de contas.',
     );
   } finally {
     await prisma?.onModuleDestroy();

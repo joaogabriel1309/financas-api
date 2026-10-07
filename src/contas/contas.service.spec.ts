@@ -31,6 +31,8 @@ describe('ContasService', () => {
         pago: false,
         dataHoraPagamento: null,
         pagamentos: [],
+        formaPagamentoId: null,
+        formaPagamento: null,
       }),
     );
     prisma.conta.findMany.mockResolvedValue([]);
@@ -56,14 +58,19 @@ describe('ContasService', () => {
         parcela: 1,
         mesReferencia: '2026-10',
         mesFim: '2026-10',
-        usuarioId: 7,
+        usuario: { connect: { id: 7 } },
       },
-      include: { pagamentos: true },
+      include: {
+        pagamentos: true,
+        formaPagamento: { select: { id: true, nome: true } },
+      },
     });
     expect(conta).toMatchObject({
       mes: '2026-10',
       parcelaAtual: 1,
       pago: false,
+      formaPagamentoId: null,
+      formaPagamento: null,
     });
   });
 
@@ -84,9 +91,12 @@ describe('ContasService', () => {
         parcela: 1,
         mesReferencia: '2026-10',
         mesFim: null,
-        usuarioId: 7,
+        usuario: { connect: { id: 7 } },
       },
-      include: { pagamentos: true },
+      include: {
+        pagamentos: true,
+        formaPagamento: { select: { id: true, nome: true } },
+      },
     });
   });
 
@@ -101,7 +111,10 @@ describe('ContasService', () => {
         mesReferencia: { lte: '2026-10' },
         OR: [{ recorrencia: true }, { mesFim: { gte: '2026-10' } }],
       },
-      include: { pagamentos: { where: { mes: '2026-10' } } },
+      include: {
+        pagamentos: { where: { mes: '2026-10' } },
+        formaPagamento: { select: { id: true, nome: true } },
+      },
       orderBy: { createdAt: 'desc' },
     });
   });
@@ -116,14 +129,17 @@ describe('ContasService', () => {
     expect(prisma.conta.create).toHaveBeenCalledWith({
       data: {
         nome: 'Compra',
-        usuarioId: 7,
+        usuario: { connect: { id: 7 } },
         recorrencia: false,
         mesReferencia: '2026-12',
         mesFim: '2027-02',
         parcela: 3,
         valor: 50,
       },
-      include: { pagamentos: true },
+      include: {
+        pagamentos: true,
+        formaPagamento: { select: { id: true, nome: true } },
+      },
     });
   });
 
@@ -136,6 +152,60 @@ describe('ContasService', () => {
       expect(prisma.conta.create).not.toHaveBeenCalled();
     },
   );
+
+  it('vincula a forma e seu dono na mesma criação e apresenta id e nome', async () => {
+    const forma = { id: 'forma-id', nome: 'Pix' };
+    prisma.conta.create.mockResolvedValueOnce({
+      id: 'conta-id',
+      mesReferencia: '2026-10',
+      recorrencia: true,
+      pagamentos: [],
+      formaPagamentoId: forma.id,
+      formaPagamento: forma,
+    });
+    const conta = await service.criar(7, {
+      nome: 'Internet',
+      mes: '2026-10',
+      recorrencia: true,
+      formaPagamentoId: forma.id,
+    });
+    const chamada = (prisma.conta.create.mock.calls as unknown[][])[0][0] as {
+      data: Record<string, unknown>;
+    };
+    expect(chamada.data).toMatchObject({
+      usuario: { connect: { id: 7 } },
+      formaPagamento: { connect: { id: forma.id, usuarioId: 7 } },
+    });
+    expect(conta).toMatchObject({
+      formaPagamentoId: forma.id,
+      formaPagamento: forma,
+    });
+  });
+
+  it('aceita null para criar sem forma de pagamento', async () => {
+    await service.criar(7, { nome: 'Internet', formaPagamentoId: null });
+    const chamada = (prisma.conta.create.mock.calls as unknown[][])[0][0] as {
+      data: Record<string, unknown>;
+    };
+    expect(chamada.data).not.toHaveProperty('formaPagamento');
+  });
+
+  it('retorna 404 para forma alheia ou inexistente', async () => {
+    prisma.conta.create.mockRejectedValueOnce({ code: 'P2025' });
+    await expect(
+      service.criar(7, { nome: 'Internet', formaPagamentoId: 'forma-id' }),
+    ).rejects.toThrow(
+      new NotFoundException('Forma de pagamento não encontrada.'),
+    );
+  });
+
+  it('não esconde outras falhas de persistência', async () => {
+    const erro = new Error('Falha de conexão');
+    prisma.conta.create.mockRejectedValueOnce(erro);
+    await expect(
+      service.criar(7, { nome: 'Internet', formaPagamentoId: 'forma-id' }),
+    ).rejects.toBe(erro);
+  });
 
   it('rejeita recorrência e parcelamento simultâneos', async () => {
     await expect(
@@ -156,6 +226,8 @@ describe('ContasService', () => {
         pago: true,
         dataHoraPagamento: new Date(),
         pagamentos: [],
+        formaPagamentoId: 'forma-id',
+        formaPagamento: { id: 'forma-id', nome: 'Cartão' },
       },
     ]);
     const [conta] = await service.listar(7, '2027-01');
@@ -164,6 +236,7 @@ describe('ContasService', () => {
       parcelaAtual: 2,
       pago: false,
       dataHoraPagamento: null,
+      formaPagamento: { id: 'forma-id', nome: 'Cartão' },
     });
     expect(conta).not.toHaveProperty('pagamentos');
   });
@@ -222,5 +295,62 @@ describe('ContasService', () => {
     await expect(service.excluir(7, 'conta-id')).rejects.toBeInstanceOf(
       NotFoundException,
     );
+  });
+
+  it('troca a forma com conta e forma limitadas ao mesmo usuário', async () => {
+    const resultado = {
+      id: 'conta-id',
+      formaPagamentoId: 'forma-id',
+      formaPagamento: { id: 'forma-id', nome: 'Pix' },
+    };
+    prisma.conta.update.mockResolvedValueOnce(resultado);
+    await expect(
+      service.alterarFormaPagamento(7, 'conta-id', {
+        formaPagamentoId: 'forma-id',
+      }),
+    ).resolves.toEqual(resultado);
+    expect(prisma.conta.update).toHaveBeenCalledWith({
+      where: { id: 'conta-id', usuarioId: 7 },
+      data: { formaPagamento: { connect: { id: 'forma-id', usuarioId: 7 } } },
+      select: {
+        id: true,
+        formaPagamentoId: true,
+        formaPagamento: { select: { id: true, nome: true } },
+      },
+    });
+  });
+
+  it('remove somente o vínculo, sem modificar pagamentos ou dados da conta', async () => {
+    await service.alterarFormaPagamento(7, 'conta-id', {
+      formaPagamentoId: null,
+    });
+    expect(prisma.conta.update).toHaveBeenCalledWith({
+      where: { id: 'conta-id', usuarioId: 7 },
+      data: { formaPagamento: { disconnect: true } },
+      select: {
+        id: true,
+        formaPagamentoId: true,
+        formaPagamento: { select: { id: true, nome: true } },
+      },
+    });
+  });
+
+  it('retorna 404 quando a conta ou forma não pertence ao usuário', async () => {
+    prisma.conta.update.mockRejectedValueOnce({ code: 'P2025' });
+    await expect(
+      service.alterarFormaPagamento(7, 'conta-id', {
+        formaPagamentoId: 'forma-id',
+      }),
+    ).rejects.toThrow(
+      new NotFoundException('Conta ou forma de pagamento não encontrada.'),
+    );
+  });
+
+  it('preserva erros inesperados na atualização do vínculo', async () => {
+    const erro = new Error('Falha de conexão');
+    prisma.conta.update.mockRejectedValueOnce(erro);
+    await expect(
+      service.alterarFormaPagamento(7, 'conta-id', { formaPagamentoId: null }),
+    ).rejects.toBe(erro);
   });
 });

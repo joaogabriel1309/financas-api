@@ -5,6 +5,7 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  IsUUID,
   Length,
   Min,
   Max,
@@ -38,4 +39,8 @@ export class CriarContaDto {
   @Min(1)
   @Max(360)
   parcela?: number;
+
+  @IsOptional()
+  @IsUUID()
+  formaPagamentoId?: string | null;
 }
