@@ -28,21 +28,22 @@ model Usuario {
 }
 
 model Conta {
-  id                String          @id @default(uuid()) @map("id")
+  id                String           @id @default(uuid()) @map("id")
   nome              String
-  icone             String          @default("wallet") @db.VarChar(24)
-  valor             Decimal         @default(0) @map("valor") @db.Decimal(15, 2)
-  pago              Boolean         @default(false) @map("pago")
-  recorrencia       Boolean         @default(false) @map("recorrencia")
-  parcela           Int             @default(1) @map("parcela")
-  mesReferencia     String          @map("mes_referencia") @db.VarChar(7)
-  mesFim            String?         @map("mes_fim") @db.VarChar(7)
-  dataHoraPagamento DateTime?       @map("data_hora_pagamento")
-  createdAt         DateTime        @default(now()) @map("created_at")
-  updatedAt         DateTime        @updatedAt @map("updated_at")
-  usuarioId         Int             @map("usuario_id")
-  usuario           Usuario         @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
-  formaPagamento    FormaPagamento? @relation(fields: [formaPagamentoId], references: [id])
+  icone             String           @default("wallet") @db.VarChar(24)
+  valor             Decimal          @default(0) @map("valor") @db.Decimal(15, 2)
+  pago              Boolean          @default(false) @map("pago")
+  recorrencia       Boolean          @default(false) @map("recorrencia")
+  parcela           Int              @default(1) @map("parcela")
+  mesReferencia     String           @map("mes_referencia") @db.VarChar(7)
+  mesFim            String?          @map("mes_fim") @db.VarChar(7)
+  dataHoraPagamento DateTime?        @map("data_hora_pagamento")
+  diaVencimento     Int?             @map("dia_vencimento")
+  createdAt         DateTime         @default(now()) @map("created_at")
+  updatedAt         DateTime         @updatedAt @map("updated_at")
+  usuarioId         Int              @map("usuario_id")
+  usuario           Usuario          @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  formaPagamento    FormaPagamento?  @relation(fields: [formaPagamentoId], references: [id])
   formaPagamentoId  String?
   pagamentos        ContaPagamento[]
 

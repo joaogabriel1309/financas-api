@@ -11,6 +11,7 @@ import { competencia, indiceMes, somarMeses } from './competencia';
 import { AlterarFormaPagamentoContaDto } from './dto/alterar-forma-pagamento-conta.dto';
 import { AlterarValorContaDto } from './dto/alterar-valor-conta.dto';
 import { EditarContaDto } from './dto/editar-conta.dto';
+import { calculaVencimento, dataHoje } from './vencimento';
 
 const formaPagamentoSelect = {
   id: true,
@@ -33,16 +34,22 @@ function filtroMensal(usuarioId: number, mes: string): Prisma.ContaWhereInput {
   };
 }
 
-function apresentar({ pagamentos, ...conta }: ContaComPagamentos, mes: string) {
+function apresentar(
+  { pagamentos, ...conta }: ContaComPagamentos,
+  mes: string,
+  hoje = dataHoje(),
+) {
   const pagamento = pagamentos.find((p) => p.mes === mes);
+  const pago = !!pagamento;
   return {
     ...conta,
     mes,
     parcelaAtual: conta.recorrencia
       ? null
       : indiceMes(mes) - indiceMes(conta.mesReferencia) + 1,
-    pago: !!pagamento,
+    pago,
     dataHoraPagamento: pagamento?.dataHoraPagamento ?? null,
+    ...calculaVencimento(mes, conta.diaVencimento, pago, hoje),
   };
 }
 
@@ -72,6 +79,7 @@ export class ContasService {
           parcela,
           mesReferencia: mes,
           mesFim: recorrencia ? null : somarMeses(mes, parcela - 1),
+          diaVencimento: dto.diaVencimento ?? null,
           usuario: { connect: { id: usuarioId } },
           // O dono da forma é validado na mesma escrita que cria a conta.
           ...(dto.formaPagamentoId
@@ -136,7 +144,9 @@ export class ContasService {
       },
       orderBy: { createdAt: 'desc' },
     });
-    return contas.map((conta) => apresentar(conta, mes));
+    const hoje = dataHoje();
+
+    return contas.map((conta) => apresentar(conta, mes, hoje));
   }
 
   async buscar(usuarioId: number, id: string) {
@@ -189,6 +199,9 @@ export class ContasService {
               mesFim,
               recorrencia: dto.recorrencia,
               parcela: dto.parcela,
+              ...(dto.diaVencimento !== undefined
+                ? { diaVencimento: dto.diaVencimento }
+                : {}),
               ...(dto.formaPagamentoId !== undefined
                 ? {
                     formaPagamento:

@@ -47,4 +47,10 @@ export class EditarContaDto {
   @IsOptional()
   @IsUUID()
   formaPagamentoId?: string | null;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(31)
+  diaVencimento?: number | null;
 }

@@ -87,6 +87,22 @@ A edição vale para todos os meses e parcelas, inclusive os pagos, sem modifica
 
 No frontend, o lápis ao lado de excluir abre `/contas/{uuid}/editar`, reutilizando o cadastro preenchido. Salvar retorna ao mês da listagem, se ele continuar no período da conta; caso contrário, abre o novo mês inicial. Cancelar não grava alterações.
 
+## Vencimento das contas
+
+O cadastro e a edição completa aceitam `diaVencimento`: um inteiro de 1 a 31 ou `null` para não informar vencimento. Na edição, omitir o campo mantém o dia atual; enviar `null` remove o vencimento. O dia pertence à definição da conta e vale para todos os meses e parcelas, sem alterar pagamentos existentes.
+
+As respostas incluem `diaVencimento`, `dataVencimento` (`AAAA-MM-DD` ou `null`) e `situacaoVencimento`. A data é calculada para a competência consultada. Se o dia não existir no mês, usa o último dia válido (por exemplo, dia 31 em abril vira 30 de abril).
+
+- `paga`: conta já paga na competência, independentemente do vencimento.
+- `atrasada`: vencimento anterior à data atual.
+- `vence_hoje`: vencimento na data atual.
+- `proxima`: vencimento nos próximos três dias.
+- `em_aberto`: sem vencimento informado ou vencimento mais distante.
+
+A data atual usa `America/Cuiaba`, inclusive quando o servidor está em outro fuso. Os status são calculados na consulta, não armazenados. No frontend, a data aparece junto ao nome e os avisos coloridos ficam na coluna de status, tanto nas contas quanto na visão geral. As telas recarregam os dados ao retornar à aba/janela e quando o dia muda, sem interromper uma edição ou gravação em andamento.
+
+A migration `20261008201615` adiciona a coluna opcional `dia_vencimento`. As contas existentes ficam sem vencimento (`null`), preservando valores e pagamentos.
+
 ## Atualizar o banco
 
 O cadastro aceita o campo opcional `icone`, salvo na definição da conta e retornado na listagem de todos os meses e parcelas. Valores permitidos: `wallet`, `home`, `car`, `motorcycle` (moto), `fuel` (gasolina), `loan` (empréstimo), `health-plan` (plano de saúde), `cart`, `heart`, `book`, `wifi`, `bolt`, `coffee`, `phone`, `card` e `receipt`. Quando omitido, usa `wallet`. A migration `20261007190000_add_icone_conta` mantém esse padrão para as contas existentes, sem alterar seus pagamentos. Adicionar essas opções não exige outra migration.
