@@ -65,6 +65,8 @@ model ContaPagamento {
 model FormaPagamento {
   id        String   @id @default(uuid()) @map("id")
   nome      String
+  cor       String   @default("#0874df") @db.VarChar(7)
+  icone     String   @default("card") @db.VarChar(24)
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 

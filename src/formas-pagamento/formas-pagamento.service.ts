@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateFormasPagamentoDto } from './dto/create-formas-pagamento.dto';
+import { COR_FORMA_PAGAMENTO_PADRAO } from './aparencia-forma-pagamento';
 
 @Injectable()
 export class FormasPagamentoService {
@@ -10,7 +11,11 @@ export class FormasPagamentoService {
     return this.prisma.formaPagamento.create({
       data: {
         usuarioId: usuarioId,
-        nome: createFormasPagamentoDto.nome,        
+        nome: createFormasPagamentoDto.nome,
+        cor:
+          createFormasPagamentoDto.cor?.toLowerCase() ??
+          COR_FORMA_PAGAMENTO_PADRAO,
+        icone: createFormasPagamentoDto.icone ?? 'card',
       },
     });
   }
@@ -28,11 +33,17 @@ export class FormasPagamentoService {
     });
   }
 
-  update(usuarioId: number, id: string, updateFormasPagamentoDto: CreateFormasPagamentoDto) {
+  update(
+    usuarioId: number,
+    id: string,
+    updateFormasPagamentoDto: CreateFormasPagamentoDto,
+  ) {
     return this.prisma.formaPagamento.update({
       where: { id, usuarioId },
       data: {
         nome: updateFormasPagamentoDto.nome,
+        cor: updateFormasPagamentoDto.cor?.toLowerCase(),
+        icone: updateFormasPagamentoDto.icone ?? undefined,
       },
     });
   }

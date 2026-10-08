@@ -11,7 +11,12 @@ import { competencia, indiceMes, somarMeses } from './competencia';
 import { AlterarFormaPagamentoContaDto } from './dto/alterar-forma-pagamento-conta.dto';
 import { AlterarValorContaDto } from './dto/alterar-valor-conta.dto';
 
-const formaPagamentoSelect = { id: true, nome: true } as const;
+const formaPagamentoSelect = {
+  id: true,
+  nome: true,
+  cor: true,
+  icone: true,
+} as const;
 type ContaComPagamentos = Prisma.ContaGetPayload<{
   include: {
     pagamentos: true;
