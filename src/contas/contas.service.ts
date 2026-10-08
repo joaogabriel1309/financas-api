@@ -10,6 +10,7 @@ import { CriarContaDto } from './dto/criar-conta.dto';
 import { competencia, indiceMes, somarMeses } from './competencia';
 import { AlterarFormaPagamentoContaDto } from './dto/alterar-forma-pagamento-conta.dto';
 import { AlterarValorContaDto } from './dto/alterar-valor-conta.dto';
+import { EditarContaDto } from './dto/editar-conta.dto';
 
 const formaPagamentoSelect = {
   id: true,
@@ -136,6 +137,92 @@ export class ContasService {
       orderBy: { createdAt: 'desc' },
     });
     return contas.map((conta) => apresentar(conta, mes));
+  }
+
+  async buscar(usuarioId: number, id: string) {
+    const conta = await this.prisma.conta.findUnique({
+      where: { id, usuarioId },
+      include: {
+        pagamentos: true,
+        formaPagamento: { select: formaPagamentoSelect },
+      },
+    });
+    if (!conta) throw new NotFoundException('Conta não encontrada.');
+    // A edição usa a definição original, não o mês/parcela exibido na listagem.
+    return apresentar(conta, conta.mesReferencia);
+  }
+
+  async editar(usuarioId: number, id: string, dto: EditarContaDto) {
+    const mes = competencia(dto.mes);
+    if (dto.recorrencia && dto.parcela > 1) {
+      throw new BadRequestException(
+        'Escolha recorrência ou parcelamento, não os dois.',
+      );
+    }
+    const mesFim = dto.recorrencia ? null : somarMeses(mes, dto.parcela - 1);
+    try {
+      const conta = await this.prisma.$transaction(
+        async (tx) => {
+          const atual = await tx.conta.findUnique({
+            where: { id, usuarioId },
+            select: { id: true, pagamentos: { select: { mes: true } } },
+          });
+          if (!atual) throw new NotFoundException('Conta não encontrada.');
+          if (
+            atual.pagamentos.some(
+              (pagamento) =>
+                pagamento.mes < mes ||
+                (mesFim !== null && pagamento.mes > mesFim),
+            )
+          ) {
+            throw new BadRequestException(
+              'O período informado deixaria meses já pagos de fora. Ajuste o mês inicial, a recorrência ou as parcelas para manter esses meses.',
+            );
+          }
+          return tx.conta.update({
+            where: { id, usuarioId },
+            data: {
+              nome: dto.nome.trim(),
+              icone: dto.icone,
+              valor: dto.valor,
+              mesReferencia: mes,
+              mesFim,
+              recorrencia: dto.recorrencia,
+              parcela: dto.parcela,
+              ...(dto.formaPagamentoId !== undefined
+                ? {
+                    formaPagamento:
+                      dto.formaPagamentoId === null
+                        ? { disconnect: true }
+                        : { connect: { id: dto.formaPagamentoId, usuarioId } },
+                  }
+                : {}),
+            },
+            include: {
+              pagamentos: true,
+              formaPagamento: { select: formaPagamentoSelect },
+            },
+          });
+        },
+        // Evita perder a validação do histórico se houver um pagamento simultâneo.
+        { isolationLevel: 'Serializable' },
+      );
+      return apresentar(conta, mes);
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'code' in error) {
+        if (error.code === 'P2025') {
+          throw new NotFoundException(
+            'Conta ou forma de pagamento não encontrada.',
+          );
+        }
+        if (error.code === 'P2034') {
+          throw new ConflictException(
+            'A conta foi alterada durante a edição. Tente salvar novamente.',
+          );
+        }
+      }
+      throw error;
+    }
   }
 
   async excluir(usuarioId: number, id: string): Promise<void> {

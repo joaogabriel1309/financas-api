@@ -70,6 +70,23 @@ O valor é obrigatório, numérico, não negativo, com até duas casas decimais 
 
 O valor pertence à definição da conta: a alteração vale para todos os meses e parcelas, inclusive meses já pagos. Não modifica o status nem a data dos pagamentos, a recorrência, a quantidade de parcelas ou a forma de pagamento. Não requer migration. No frontend, dois cliques no valor abrem a edição; Enter ou o botão salva, Esc ou Cancelar descarta o rascunho. Sair do campo não salva automaticamente.
 
+## Edição completa da conta
+
+`GET /contas/{uuid}` consulta a definição original da conta do usuário autenticado, com ícone e forma de pagamento. A resposta apresenta o status do mês inicial; `mesReferencia` e `parcela` são o mês original e o total de parcelas, não a competência/parcela selecionada na lista. Conta inexistente ou de outro usuário retorna 404.
+
+```http
+PATCH /contas/{uuid}/dados
+Content-Type: application/json
+
+{"nome":"Internet","icone":"wifi","valor":120,"mes":"2026-10","recorrencia":true,"parcela":1,"formaPagamentoId":null}
+```
+
+Nome, ícone, valor, mês inicial (`mes`), recorrência e quantidade de parcelas são obrigatórios e validados. `formaPagamentoId` omitido mantém o vínculo; `null` remove e UUID vincula somente formas do mesmo usuário. O endpoint de troca rápida `PATCH /contas/{uuid}` permanece inalterado.
+
+A edição vale para todos os meses e parcelas, inclusive os pagos, sem modificar status ou datas dos pagamentos. O período final é recalculado; recorrência com mais de uma parcela retorna 400. Se o novo período deixar qualquer mês já pago de fora, retorna 400 e nenhuma alteração é gravada. A verificação do histórico e a atualização são atômicas, com isolamento serializável; conflitos de gravação retornam 409 para nova tentativa. A resposta 200 contém a conta atualizada, apresentada no mês inicial. Não requer migration.
+
+No frontend, o lápis ao lado de excluir abre `/contas/{uuid}/editar`, reutilizando o cadastro preenchido. Salvar retorna ao mês da listagem, se ele continuar no período da conta; caso contrário, abre o novo mês inicial. Cancelar não grava alterações.
+
 ## Atualizar o banco
 
 O cadastro aceita o campo opcional `icone`, salvo na definição da conta e retornado na listagem de todos os meses e parcelas. Valores permitidos: `wallet`, `home`, `car`, `motorcycle` (moto), `fuel` (gasolina), `loan` (empréstimo), `health-plan` (plano de saúde), `cart`, `heart`, `book`, `wifi`, `bolt`, `coffee`, `phone`, `card` e `receipt`. Quando omitido, usa `wallet`. A migration `20261007190000_add_icone_conta` mantém esse padrão para as contas existentes, sem alterar seus pagamentos. Adicionar essas opções não exige outra migration.

@@ -18,6 +18,7 @@ import { CriarContaDto } from './dto/criar-conta.dto';
 import { MesContaDto } from './dto/mes-conta.dto';
 import { AlterarFormaPagamentoContaDto } from './dto/alterar-forma-pagamento-conta.dto';
 import { AlterarValorContaDto } from './dto/alterar-valor-conta.dto';
+import { EditarContaDto } from './dto/editar-conta.dto';
 
 @Controller('contas')
 export class ContasController {
@@ -47,6 +48,23 @@ export class ContasController {
     @Query() filtro: MesContaDto,
   ) {
     return this.contasService.listar(usuario.id, filtro.mes);
+  }
+
+  @Get(':id')
+  buscar(
+    @UsuarioAtual() usuario: UsuarioAutenticado,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.contasService.buscar(usuario.id, id);
+  }
+
+  @Patch(':id/dados')
+  editar(
+    @UsuarioAtual() usuario: UsuarioAutenticado,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: EditarContaDto,
+  ) {
+    return this.contasService.editar(usuario.id, id, dto);
   }
 
   @Delete(':id')
