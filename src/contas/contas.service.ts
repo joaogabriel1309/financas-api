@@ -12,6 +12,7 @@ import { AlterarFormaPagamentoContaDto } from './dto/alterar-forma-pagamento-con
 import { AlterarValorContaDto } from './dto/alterar-valor-conta.dto';
 import { EditarContaDto } from './dto/editar-conta.dto';
 import { calculaVencimento, dataHoje } from './vencimento';
+import { filtroMensalContas } from './filtro-mensal';
 
 const formaPagamentoSelect = {
   id: true,
@@ -25,14 +26,6 @@ type ContaComPagamentos = Prisma.ContaGetPayload<{
     formaPagamento: { select: typeof formaPagamentoSelect };
   };
 }>;
-
-function filtroMensal(usuarioId: number, mes: string): Prisma.ContaWhereInput {
-  return {
-    usuarioId,
-    mesReferencia: { lte: mes },
-    OR: [{ recorrencia: true }, { mesFim: { gte: mes } }],
-  };
-}
 
 function apresentar(
   { pagamentos, ...conta }: ContaComPagamentos,
@@ -119,7 +112,7 @@ export class ContasService {
     try {
       // Escrita aninhada atômica: verifica dono/competência e registra só este mês.
       await this.prisma.conta.update({
-        where: { ...filtroMensal(usuarioId, mes), id },
+        where: { ...filtroMensalContas(usuarioId, mes), id },
         data: { pagamentos: { create: { mes } } },
         select: { id: true },
       });
@@ -137,7 +130,7 @@ export class ContasService {
   async listar(usuarioId: number, referencia?: string) {
     const mes = competencia(referencia);
     const contas = await this.prisma.conta.findMany({
-      where: filtroMensal(usuarioId, mes),
+      where: filtroMensalContas(usuarioId, mes),
       include: {
         pagamentos: { where: { mes } },
         formaPagamento: { select: formaPagamentoSelect },
