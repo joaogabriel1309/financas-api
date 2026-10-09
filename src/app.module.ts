@@ -6,6 +6,7 @@ import { AuthModule } from './auth/auth.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ContasModule } from './contas/contas.module';
 import { FormasPagamentoModule } from './formas-pagamento/formas-pagamento.module';
+import { ReceitasModule } from './receitas/receitas.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { FormasPagamentoModule } from './formas-pagamento/formas-pagamento.modul
     AuthModule,
     ContasModule,
     FormasPagamentoModule,
+    ReceitasModule,
   ],
   controllers: [AppController],
   providers: [AppService],

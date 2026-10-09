@@ -22,6 +22,7 @@ model Usuario {
   updatedAt       DateTime         @updatedAt @map("updated_at")
   refreshTokens   RefreshToken[]
   contas          Conta[]
+  receitas        Receita[]
   formasPagamento FormaPagamento[]
 
   @@map("usuarios")
@@ -51,6 +52,21 @@ model Conta {
   @@index([usuarioId])
   @@index([usuarioId, mesReferencia, mesFim])
   @@map("contas")
+}
+
+model Receita {
+  id            String   @id @default(uuid())
+  nome          String   @db.VarChar(100)
+  valor         Decimal  @db.Decimal(15, 2)
+  mesReferencia String   @map("mes_referencia") @db.VarChar(7)
+  recorrencia   Boolean  @default(false)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  usuarioId     Int      @map("usuario_id")
+  usuario       Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId, mesReferencia])
+  @@map("receitas")
 }
 
 model ContaPagamento {
