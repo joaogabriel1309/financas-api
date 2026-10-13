@@ -127,6 +127,36 @@ export class ContasService {
     }
   }
 
+  async desfazerPagamento(usuarioId: number, id: string, referencia?: string) {
+    const mes = competencia(referencia);
+    try {
+      // Dono, competência e pagamento são validados na mesma escrita atômica.
+      const conta = await this.prisma.conta.update({
+        where: { ...filtroMensalContas(usuarioId, mes), id },
+        data: {
+          pagamentos: { delete: { contaId_mes: { contaId: id, mes } } },
+        },
+        include: {
+          pagamentos: { where: { mes } },
+          formaPagamento: { select: formaPagamentoSelect },
+        },
+      });
+      return apresentar(conta, mes);
+    } catch (error: unknown) {
+      if (
+        error &&
+        typeof error === 'object' &&
+        'code' in error &&
+        error.code === 'P2025'
+      ) {
+        throw new NotFoundException(
+          'Pagamento não encontrado para esta conta neste mês.',
+        );
+      }
+      throw error;
+    }
+  }
+
   async listar(usuarioId: number, referencia?: string) {
     const mes = competencia(referencia);
     const contas = await this.prisma.conta.findMany({

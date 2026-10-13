@@ -7,6 +7,7 @@ As competências usam `AAAA-MM`. Sem `mes`, a API usa o mês atual em `America/C
 - Parcelas: uma por mês, até a quantidade informada (1 a 360). `valor` é o valor de cada parcela, não o total da compra.
 - Recorrência e múltiplas parcelas não podem ser combinadas.
 - Pagar uma conta marca apenas o mês escolhido. Pagar novamente o mesmo mês retorna 409.
+- Desfazer pagamento reabre apenas o mês escolhido, preservando a conta e os pagamentos dos outros meses e parcelas. O frontend exige confirmação.
 - Excluir remove a conta inteira, suas parcelas e os pagamentos de todos os meses. O frontend pede confirmação explícita.
 
 ## API
@@ -20,6 +21,18 @@ Content-Type: application/json
 ```
 
 Esta conta aparece em dezembro, janeiro e fevereiro. A resposta mensal inclui `mes`, `mesReferencia`, `mesFim`, `parcela`, `parcelaAtual`, `recorrencia`, `pago` e `dataHoraPagamento`.
+
+### Desfazer pagamento
+
+```http
+DELETE /contas/{uuid}/pagamento?mes=2027-01
+```
+
+Remove somente o registro de pagamento da competência informada e retorna 200 com a conta atualizada nesse mês: `pago: false`, `dataHoraPagamento: null` e situação de vencimento recalculada. Uma conta reaberta pode aparecer como “Atrasada”, “Vence hoje” ou “Próxima do vencimento”, conforme a data, e volta ao filtro “Em aberto”. Os pagamentos de outros meses e parcelas são preservados, assim como valor, recorrência, ícone e forma de pagamento.
+
+UUID ou mês inválido retorna 400. Conta inexistente, de outro usuário, fora do período ou sem pagamento naquele mês retorna 404, sem remover nenhum outro registro. Propriedade, competência e exclusão do pagamento são validadas em uma única escrita aninhada atômica. Sem `mes`, usa o mês atual em Cuiabá. Não requer migration e não é um estorno bancário.
+
+Na listagem, contas pagas exibem “Desfazer”. O diálogo identifica nome e mês, oferece Cancelar e exige confirmar “Desfazer pagamento”. Durante a gravação, os controles ficam bloqueados; em caso de falha, o erro permanece no diálogo para nova tentativa. A confirmação atualiza a conta usando a resposta do servidor e mantém a busca e o filtro selecionados.
 
 ### Forma de pagamento
 

@@ -42,6 +42,15 @@ export class ContasController {
     return this.contasService.pagar(usuario.id, id, filtro.mes);
   }
 
+  @Delete(':id/pagamento')
+  desfazerPagamento(
+    @UsuarioAtual() usuario: UsuarioAutenticado,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Query() filtro: MesContaDto,
+  ) {
+    return this.contasService.desfazerPagamento(usuario.id, id, filtro.mes);
+  }
+
   @Get()
   listar(
     @UsuarioAtual() usuario: UsuarioAutenticado,
