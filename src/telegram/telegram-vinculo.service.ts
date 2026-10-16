@@ -1,12 +1,14 @@
 import {
   BadRequestException,
   ConflictException,
+  Injectable,
 } from '@nestjs/common';
 import { ConfigService } from "@nestjs/config";
 import { randomBytes, createHash } from "crypto";
 import { Prisma } from "generated/prisma/client";
 import { PrismaService } from "src/prisma/prisma.service";
 
+@Injectable()
 export class TelegramVinculoService {
   constructor(
     private readonly prisma: PrismaService,
