@@ -8,11 +8,13 @@ import { ContasModule } from './contas/contas.module';
 import { FormasPagamentoModule } from './formas-pagamento/formas-pagamento.module';
 import { ReceitasModule } from './receitas/receitas.module';
 import { PrevisaoModule } from './previsao/previsao.module';
+import { TelegramModule } from './telegram/telegram.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
+    TelegramModule,
     AuthModule,
     ContasModule,
     FormasPagamentoModule,
@@ -22,4 +24,4 @@ import { PrevisaoModule } from './previsao/previsao.module';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }

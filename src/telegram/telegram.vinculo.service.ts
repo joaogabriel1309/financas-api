@@ -5,8 +5,8 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from "@nestjs/config";
 import { randomBytes, createHash } from "crypto";
-import { Prisma } from "generated/prisma/client";
-import { PrismaService } from "src/prisma/prisma.service";
+import { Prisma } from '../../generated/prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class TelegramVinculoService {
@@ -22,7 +22,7 @@ export class TelegramVinculoService {
     });
     return {
       conectado: !!vinculo,
-      criadoEm: vinculo?.createdAt,
+      criadoEm: vinculo?.createdAt ?? null,
     };
   }
 
@@ -54,7 +54,10 @@ export class TelegramVinculoService {
       });
     })
 
-    return `https://t.me/${username}?start=${codigo}`;
+    return {
+      url: `https://t.me/${username}?start=${codigo}`,
+      expiresAt: expiresAt.toISOString(),
+    };
   }
 
   async confirmar(
