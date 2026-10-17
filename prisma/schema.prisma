@@ -20,12 +20,46 @@ model Usuario {
   senha           String
   createdAt       DateTime         @default(now()) @map("created_at")
   updatedAt       DateTime         @updatedAt @map("updated_at")
+  telegramVinculo TelegramVinculo?
+  telegramCodigo  TelegramCodigo?
   refreshTokens   RefreshToken[]
   contas          Conta[]
   receitas        Receita[]
   formasPagamento FormaPagamento[]
 
   @@map("usuarios")
+}
+
+model TelegramVinculo {
+  usuarioId      Int      @id @map("usuario_id")
+  telegramUserId BigInt   @unique @map("telegram_user_id")
+  chatId         BigInt   @unique @map("chat_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@map("telegram_vinculos")
+}
+
+model TelegramCodigo {
+  usuarioId Int      @id @map("usuario_id")
+  hash      String   @unique @db.VarChar(64)
+  expiresAt DateTime @map("expires_at")
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@map("telegram_codigos")
+}
+
+model TelegramUpdate {
+  botId     BigInt   @map("bot_id")
+  updateId  Int      @map("update_id")
+  usuarioId Int      @map("usuario_id")
+  resposta  String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@id([botId, updateId])
+  @@map("telegram_updates")
 }
 
 model Conta {

@@ -48,9 +48,9 @@ function apresentar(
 
 @Injectable()
 export class ContasService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
-  async criar(usuarioId: number, dto: CriarContaDto) {
+  async criar(usuarioId: number, dto: CriarContaDto, db: Prisma.TransactionClient = this.prisma) {
     const mes = competencia(dto.mes);
     const parcela = dto.parcela ?? 1;
     const recorrencia = dto.recorrencia ?? false;
@@ -63,7 +63,7 @@ export class ContasService {
       );
     }
     try {
-      const conta = await this.prisma.conta.create({
+      const conta = await db.conta.create({
         data: {
           nome: dto.nome.trim(),
           icone: dto.icone ?? 'wallet',
@@ -77,10 +77,10 @@ export class ContasService {
           // O dono da forma é validado na mesma escrita que cria a conta.
           ...(dto.formaPagamentoId
             ? {
-                formaPagamento: {
-                  connect: { id: dto.formaPagamentoId, usuarioId },
-                },
-              }
+              formaPagamento: {
+                connect: { id: dto.formaPagamentoId, usuarioId },
+              },
+            }
             : {}),
         },
         include: {
@@ -227,11 +227,11 @@ export class ContasService {
                 : {}),
               ...(dto.formaPagamentoId !== undefined
                 ? {
-                    formaPagamento:
-                      dto.formaPagamentoId === null
-                        ? { disconnect: true }
-                        : { connect: { id: dto.formaPagamentoId, usuarioId } },
-                  }
+                  formaPagamento:
+                    dto.formaPagamentoId === null
+                      ? { disconnect: true }
+                      : { connect: { id: dto.formaPagamentoId, usuarioId } },
+                }
                 : {}),
             },
             include: {
