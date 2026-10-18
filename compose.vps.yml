@@ -33,7 +33,7 @@ services:
 
   migrate:
     <<: *api
-    command: ["pnpm", "exec", "prisma", "migrate", "deploy"]
+    command: ["node", "node_modules/prisma/build/index.js", "migrate", "deploy"]
     depends_on:
       postgres:
         condition: service_healthy
@@ -42,6 +42,11 @@ services:
 
   api:
     <<: *api
+    environment:
+      <<: *api-env
+      TELEGRAM_ENABLED: ${TELEGRAM_ENABLED:-false}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_BOT_USERNAME: ${TELEGRAM_BOT_USERNAME:-}
     restart: unless-stopped
     depends_on:
       postgres:
