@@ -39,7 +39,8 @@ no `.env.vps` após a geração. Não encerre o serviço existente.
 mkdir -p /root/financas
 tar -xzf /root/financas-vps.tar.gz -C /root/financas
 cd /root/financas/financas-api
-sh deploy/init-vps-env.sh
+if [ ! -f .env.vps ]; then sh deploy/init-vps-env.sh; fi
+nano .env.vps
 docker compose --env-file .env.vps -f compose.vps.yml up -d --build
 docker compose --env-file .env.vps -f compose.vps.yml ps -a
 ```
@@ -48,6 +49,22 @@ O script gera senhas aleatórias, com permissões restritas. Preserve `.env.vps`
 nas próximas atualizações; não o publique. A API espera o banco ficar saudável
 e as migrations terminarem. O serviço `migrate` deve aparecer como `Exited (0)`:
 ele é uma tarefa, não um servidor permanente.
+
+Antes de subir os containers, preencha no `.env.vps` as configurações do bot:
+
+```dotenv
+TELEGRAM_ENABLED=true
+TELEGRAM_BOT_TOKEN=token_do_BotFather
+TELEGRAM_BOT_USERNAME=nome_do_bot_sem_arroba
+```
+
+Se o arquivo já existia, acrescente essas três variáveis, sem substituir as
+senhas do banco e do JWT. Não envie o token pelo chat ou publique o arquivo.
+Para o acesso por IP com HTTP, mantenha `COOKIE_SECURE=false`.
+
+O bot usa polling. Pare o back local que usa esse mesmo token antes de ativar
+a API na VPS, para não haver dois processos consumindo as mensagens do bot.
+Depois de subir, acesse **Integrações → Conectar Telegram** no front.
 
 Se alguma etapa falhar:
 
